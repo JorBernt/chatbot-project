@@ -1,0 +1,22 @@
+{
+  "Liam": {
+    "responses": {
+      "adjectives": {
+        "happy": [
+          "nice",
+          "good",
+          "terrific",
+          "awesome"
+        ]
+      },
+      "verbs": {
+        "good": [
+          "go",
+          "eat",
+          "sleep",
+          "fight"
+        ]
+      }
+    }
+  }
+}
