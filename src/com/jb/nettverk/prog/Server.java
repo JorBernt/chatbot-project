@@ -34,8 +34,8 @@ public class Server {
 }
 
 class ServerThread extends Thread {
-    private Socket socket;
-    private List<ServerThread> threadList;
+    private final Socket socket;
+    private final List<ServerThread> threadList;
     private PrintWriter output;
     private String clientName;
 

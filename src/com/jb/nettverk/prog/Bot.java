@@ -1,5 +1,11 @@
 package com.jb.nettverk.prog;
 
+import org.w3c.dom.Node;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 enum Mood {
@@ -23,15 +29,24 @@ public class Bot {
     protected Map<Mood, List<Verb>> verbs = new HashMap<>();
     protected Random random = new Random();
     protected Map<Mood, List<String>> sentences = new HashMap<>();
+    private Mood mood;
 
-    protected Bot(String name) {
+    public static void main(String[] args) {
+        Bot_John bj = new Bot_John();
+        System.out.println(bj.getResponse("How are your wine?"));
+    }
+
+    protected Bot(String name, Mood mood) {
         this.name = name;
+        this.mood = mood;
         init();
     }
 
     static Bot getBot(String name) {
         return switch (name) {
             case "Liam" -> new Bot_LIAM();
+            case "Hannah" -> new Bot_Hannah();
+            case "John" -> new Bot_John();
             default -> null;
         };
     }
@@ -101,7 +116,6 @@ public class Bot {
     public String getResponse(String input) {
         if (input == null || input.equals("")) return null;
         String[] sentence = input.split(" ");
-        Mood mood = random.nextBoolean() ? Mood.GOOD : Mood.BAD;
         String respons = getRandom(sentences, mood);
         while (true) {
             if(respons.contains("{}")) {
@@ -132,9 +146,8 @@ public class Bot {
                 respons = respons.replace("{_vp}", getRandom(verbs, mood,true).toLowerCase());
                 continue;
             }
-            break;
+            return respons;
         }
-        return respons;
     }
 
 
@@ -146,9 +159,170 @@ public class Bot {
 class Bot_LIAM extends Bot {
 
     public Bot_LIAM() {
-        super("Liam");
+        super("Liam", Mood.GOOD);
 
     }
-
-
 }
+
+class Bot_Hannah extends Bot {
+
+    public Bot_Hannah() {
+        super("Hannah",Mood.BAD);
+
+    }
+}
+
+class Bot_John extends Bot {
+    private final Map<String, Node> graph;
+
+    public Bot_John() {
+        super("John", null);
+        graph = new HashMap<>();
+        init();
+    }
+
+    private void init() {
+        try {
+            buildTree();
+        }
+        catch (Exception e) {
+            System.out.println("Could not read file");
+            e.printStackTrace();
+        }
+    }
+
+    private void buildTree() throws FileNotFoundException {
+        File file = new File("C:\\Users\\bernt\\IdeaProjects\\chatbot-project\\botData\\quotes_db.txt");
+        Scanner in = new Scanner(new FileInputStream(file), StandardCharsets.UTF_8);
+        Node prevWord = null;
+        while (in.hasNextLine()) {
+            String input = in.nextLine().toLowerCase();
+            String[] inputWords = input.split(" ");
+            for(String s : inputWords) {
+                boolean hasPunctuation = s.matches("[\\w]+[\\W]+");
+                char punctuation = 'x';
+                if(hasPunctuation) {
+                     punctuation = s.charAt(s.length() - 1);
+                }
+                s = s.replaceAll("[-.,?!:;()]", "");
+                Node currentWord = graph.getOrDefault(s, new Node(s));
+                currentWord.occurrence++;
+                if(hasPunctuation) {
+                    currentWord.getPunctuation(punctuation).increase();
+                }
+                if(prevWord != null)
+                    prevWord.edges.add(currentWord);
+                graph.put(s, currentWord);
+                prevWord = currentWord;
+            }
+        }
+    }
+
+    private Node getNode(String word) {
+        Node node = graph.get(word);
+        if(node == null) {
+            int n = random.nextInt(graph.size());
+            for(var nn : graph.values())
+                if(n-- == 0) {
+                    node = nn;
+                    break;
+                }
+        }
+        return node;
+    }
+
+    @Override
+    public String getResponse(String input) {
+        input = input.toLowerCase();
+        input = input.replaceAll("[-.,:;?!]","");
+        List<String> pickedWords = new ArrayList<>();
+        String[] inputWords = input.split(" ");
+        String lastWord = inputWords[inputWords.length - 1];
+        int responseLength = random.nextInt(15)+5;
+        int timesSinceLastComma = 0;
+        boolean done = false;
+        Node prevWord = getNode(lastWord);
+        while (!done) {
+            Node current = prevWord.getNext();
+            String picked = current.word;
+            if(pickedWords.isEmpty()) {
+                picked = Character.toUpperCase(picked.charAt(0)) + picked.substring(1);
+            }
+            if(pickedWords.size() >= responseLength) {
+                if(current.suitableEnd()) {
+                    char punctuation = current.punctuations.peek().character;
+                    picked += punctuation == ',' ? '.' : punctuation;
+                    done = true;
+                }
+                if(pickedWords.size() > responseLength + 20) {
+                    picked += ".";
+                    done = true;
+                }
+            }
+            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 3) {
+                if(random.nextBoolean()) {
+                    picked += ',';
+                    timesSinceLastComma = 0;
+                }
+            }
+            prevWord = current;
+            timesSinceLastComma++;
+            pickedWords.add(picked);
+        }
+        return String.join(" ", pickedWords);
+    }
+
+    static class Node {
+        private String word;
+        private Set<Node> edges;
+        private int fittingEndOfSentence;
+        private int occurrence;
+        private PriorityQueue<Punctuation> punctuations;
+        private Random random;
+
+        public Node(String word) {
+            this.word = word;
+            this.edges = new HashSet<>();
+            fittingEndOfSentence = 0;
+            occurrence = 0;
+            punctuations = new PriorityQueue<>(Comparator.comparingInt(a -> -a.score));
+            random = new Random();
+        }
+
+        public Punctuation getPunctuation(char c) {
+            for(var p : punctuations) {
+                if(p.character == c) return p;
+            }
+            Punctuation punctuation = new Punctuation(c);
+            punctuations.add(punctuation);
+            return punctuation;
+        }
+
+        public boolean suitableEnd() {
+            return (double) punctuations.size() / occurrence >= 0.3 && punctuations.peek().character != ',';
+        }
+
+        public Node getNext() {
+            int m = random.nextInt(edges.size());
+            for(Node n : edges) {
+                if(m-- == 0) return  n;
+            }
+            return null;
+        }
+    }
+
+    static class Punctuation {
+        char character;
+        int score;
+
+        public Punctuation(char character) {
+            this.character = character;
+            this.score = 0;
+        }
+
+        public void increase() {
+            score++;
+        }
+    }
+}
+

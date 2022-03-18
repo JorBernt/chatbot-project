@@ -114,7 +114,7 @@ class BotClient {
 
     public void recieveRespons(String respons) {
         if(respons.split(": ").length < 2) return;
-        if(bot != null) {
+        if(bot != null && !respons.startsWith("[BOT]")) {
             try {
                 sendMessage(bot.getResponse(respons.split(": ")[1]));
             }
