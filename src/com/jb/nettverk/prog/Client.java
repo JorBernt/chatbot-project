@@ -64,7 +64,7 @@ public class Client {
 }
 
 class ClientThread extends Thread {
-    private Socket socket;
+    private final Socket socket;
     private final BufferedReader input;
     private final BotClient client;
 

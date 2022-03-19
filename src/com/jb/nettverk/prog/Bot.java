@@ -1,7 +1,5 @@
 package com.jb.nettverk.prog;
 
-import org.w3c.dom.Node;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -25,12 +23,12 @@ class Verb {
 }
 
 public class Bot {
+    protected final Mood mood;
     protected final String name;
+    protected Random random = new Random();
     protected Map<Mood, List<String>> adjectives = new HashMap<>();
     protected Map<Mood, List<Verb>> verbs = new HashMap<>();
-    protected Random random = new Random();
     protected Map<Mood, List<String>> sentences = new HashMap<>();
-    private Mood mood;
 
     public static void main(String[] args) {
         Bot_John bj = new Bot_John();
@@ -148,31 +146,35 @@ public class Bot {
         String respons = getRandom(sentences, mood);
         while (true) {
             if(respons.contains("{}")) {
-                respons = respons.replace("{}", sentence[sentence.length - 1].replaceAll("\\W", ""));
+                respons = respons.replaceFirst("(\\{})", sentence[sentence.length - 1].replaceAll("\\W", ""));
+                continue;
+            }
+            if(respons.contains("{_}")) {
+                respons = respons.replaceFirst("(\\{_})", sentence[sentence.length - 1].replaceAll("\\W", "").toLowerCase());
                 continue;
             }
             if(respons.contains("{a}")) {
-                respons = respons.replace("{a}", getRandom(adjectives, mood));
+                respons = respons.replaceFirst("(\\{a})", getRandom(adjectives, mood));
                 continue;
             }
             if(respons.contains("{_a}")) {
-                respons = respons.replace("{_a}", getRandom(adjectives, mood).toLowerCase());
+                respons = respons.replaceFirst("(\\{_a})", getRandom(adjectives, mood).toLowerCase());
                 continue;
             }
             if(respons.contains("{v}")) {
-                respons = input.replace("{v}", getRandom(verbs, mood, false));
+                respons = input.replaceFirst("(\\{v})", getRandom(verbs, mood, false));
                 continue;
             }
             if(respons.contains("{_v}")) {
-                respons = respons.replace("{_v}", getRandom(verbs, mood,false).toLowerCase());
+                respons = respons.replaceFirst("(\\{_v})", getRandom(verbs, mood,false).toLowerCase());
                 continue;
             }
             if(respons.contains("{vp}")) {
-                respons = respons.replace("{vp}", getRandom(verbs, mood, true));
+                respons = respons.replaceFirst("(\\{vp})", getRandom(verbs, mood, true));
                 continue;
             }
             if(respons.contains("{_vp}")) {
-                respons = respons.replace("{_vp}", getRandom(verbs, mood,true).toLowerCase());
+                respons = respons.replaceFirst("(\\{_vp})", getRandom(verbs, mood,true).toLowerCase());
                 continue;
             }
             return respons;
@@ -224,7 +226,6 @@ class Bot_John extends Bot {
         }
         catch (Exception e) {
             System.out.println("Could not read file");
-            e.printStackTrace();
         }
     }
 
@@ -282,9 +283,8 @@ class Bot_John extends Bot {
         while (!done) {
             Node current = prevWord.getNext();
             String picked = current.word;
-            if(pickedWords.isEmpty()) {
+            if(pickedWords.isEmpty() && picked.length() > 0)
                 picked = Character.toUpperCase(picked.charAt(0)) + picked.substring(1);
-            }
             if(pickedWords.size() >= responseLength) {
                 if(current.suitableEnd()) {
                     char punctuation = current.punctuations.peek().character;
@@ -296,12 +296,11 @@ class Bot_John extends Bot {
                     done = true;
                 }
             }
-            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 3) {
+            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 3)
                 if(random.nextBoolean()) {
                     picked += ',';
                     timesSinceLastComma = 0;
                 }
-            }
             prevWord = current;
             timesSinceLastComma++;
             pickedWords.add(picked);
@@ -310,17 +309,15 @@ class Bot_John extends Bot {
     }
 
     static class Node {
-        private String word;
-        private Set<Node> edges;
-        private int fittingEndOfSentence;
+        private final String word;
+        private final Set<Node> edges;
         private int occurrence;
-        private PriorityQueue<Punctuation> punctuations;
-        private Random random;
+        private final PriorityQueue<Punctuation> punctuations;
+        private final Random random;
 
         public Node(String word) {
             this.word = word;
             this.edges = new HashSet<>();
-            fittingEndOfSentence = 0;
             occurrence = 0;
             punctuations = new PriorityQueue<>(Comparator.comparingInt(a -> -a.score));
             random = new Random();
@@ -336,7 +333,7 @@ class Bot_John extends Bot {
         }
 
         public boolean suitableEnd() {
-            return (double) punctuations.size() / occurrence >= 0.3 && punctuations.peek().character != ',';
+            return (double) punctuations.size() / occurrence >= 0.3 && punctuations.size() > 0 && punctuations.peek().character != ',';
         }
 
         public Node getNext() {
