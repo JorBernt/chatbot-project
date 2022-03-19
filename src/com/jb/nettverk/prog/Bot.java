@@ -11,6 +11,7 @@ import java.util.*;
 enum Mood {
     GOOD,
     BAD,
+    INDIFFERENT
 }
 
 class Verb {
@@ -47,6 +48,7 @@ public class Bot {
             case "Liam" -> new Bot_LIAM();
             case "Hannah" -> new Bot_Hannah();
             case "John" -> new Bot_John();
+            case "Sara" -> new Bot_Sara();
             default -> null;
         };
     }
@@ -72,6 +74,13 @@ public class Bot {
         bad_adj.add("Gross");
         adjectives.put(Mood.BAD, bad_adj);
 
+        List<String> indiff_adj = new ArrayList<>();
+        indiff_adj.add("Okay");
+        indiff_adj.add("Fine");
+        indiff_adj.add("Whatever");
+        indiff_adj.add("Ok");
+        adjectives.put(Mood.INDIFFERENT, indiff_adj);
+
         List<Verb> good_verb = new ArrayList<>();
         good_verb.add(new Verb("Write", "Writing"));
         good_verb.add(new Verb("Work", "Working"));
@@ -83,14 +92,28 @@ public class Bot {
 
         List<Verb> bad_verb = new ArrayList<>();
         bad_verb.add(new Verb("Steal", "Stealing"));
-        bad_verb.add(new Verb("Work", "Working"));
-        bad_verb.add(new Verb("Swim", "Swimming"));
-        bad_verb.add(new Verb("Run", "Running"));
-        bad_verb.add(new Verb("Code", "Coding"));
+        bad_verb.add(new Verb("Murder", "Mudering"));
+        bad_verb.add(new Verb("Cheat", "Cheating"));
+        bad_verb.add(new Verb("Fight", "Fighting"));
+        bad_verb.add(new Verb("Bully", "Bullying"));
         verbs.put(Mood.BAD, bad_verb);
 
+        List<Verb> indiff_verb = new ArrayList<>();
+        indiff_verb.add(new Verb("Steal", "Stealing"));
+        indiff_verb.add(new Verb("Murder", "Mudering"));
+        indiff_verb.add(new Verb("Cheat", "Cheating"));
+        indiff_verb.add(new Verb("Fight", "Fighting"));
+        indiff_verb.add(new Verb("Bully", "Bullying"));
+        indiff_verb.add(new Verb("Write", "Writing"));
+        indiff_verb.add(new Verb("Work", "Working"));
+        indiff_verb.add(new Verb("Swim", "Swimming"));
+        indiff_verb.add(new Verb("Run", "Running"));
+        indiff_verb.add(new Verb("Code", "Coding"));
+        verbs.put(Mood.INDIFFERENT, indiff_verb);
+
+
         List<String> good_sentences = new ArrayList<>();
-        good_sentences.add("That's {_a}! I like {}!");
+        good_sentences.add("That's {_a}! I like {_}!");
         good_sentences.add("{a}! We can {} together. I also like {_vp}.");
         good_sentences.add("Yes, I love {}! This is going to be {_a}.");
         sentences.put(Mood.GOOD, good_sentences);
@@ -100,6 +123,12 @@ public class Bot {
         bad_sentences.add("Isn't that just {_a}! I'd rather be {_vp}.");
         bad_sentences.add("No, I think {} is {_a}!");
         sentences.put(Mood.BAD, bad_sentences);
+
+        List<String> indiff_sentences = new ArrayList<>();
+        indiff_sentences.add("Well, that's {_a}. So {_a}.");
+        indiff_sentences.add("{a}. {vp}, {_vp}, {_vp} or {}, its {_a}.");
+        indiff_sentences.add("No, I think {} is {_a}.");
+        sentences.put(Mood.INDIFFERENT, indiff_sentences);
     }
 
     private String getRandom(Map<Mood, List<String>> list, Mood mood) {
@@ -168,6 +197,14 @@ class Bot_Hannah extends Bot {
 
     public Bot_Hannah() {
         super("Hannah",Mood.BAD);
+
+    }
+}
+
+class Bot_Sara extends Bot {
+
+    public Bot_Sara() {
+        super("Sara",Mood.INDIFFERENT);
 
     }
 }
