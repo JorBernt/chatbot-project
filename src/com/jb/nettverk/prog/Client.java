@@ -39,41 +39,43 @@ public class Client {
                try {
                    System.out.printf("Hello %s\n", input);
                    botClient.sendMessage(input);
-                   break;
                }
                catch (Exception e) {
-                   e.printStackTrace();
-                   break;
+                   System.out.println("Bot client could not send message.");
                }
+                break;
             }
         }
         while (true) {
             String input = in.nextLine();
             try {
+                if(input.equals("/exit")) {
+                    System.out.println("Exiting client.");
+                    botClient.sendMessage(input);
+                    botClient.stopConnection();
+                    return;
+                }
                 botClient.sendMessage(input);
             }
             catch (IOException e) {
                 System.out.println("Could not send message, no connection");
+                break;
             }
         }
     }
     private static void botConnection(BotClient botClient, String botName) {
         botClient.connectBot(Bot.getBot(botName));
     }
-
 }
 
 class ClientThread extends Thread {
-    private final Socket socket;
     private final BufferedReader input;
     private final BotClient client;
 
     public ClientThread(Socket socket, BotClient client) throws IOException {
-        this.socket = socket;
         input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.client = client;
     }
-
 
     @Override
     public void run() {
@@ -101,14 +103,13 @@ class BotClient {
     private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
-    private ClientThread clientThread;
     private Bot bot;
 
     public void startConnection(String ip, int port) throws IOException {
         clientSocket = new Socket(ip, port);
         out = new PrintWriter(clientSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        clientThread = new ClientThread(clientSocket, this);
+        ClientThread clientThread = new ClientThread(clientSocket, this);
         clientThread.start();
     }
 

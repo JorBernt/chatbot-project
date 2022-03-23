@@ -14,10 +14,10 @@ enum Mood {
 
 class Verb {
     String present;
-    String infinitiv;
+    String infinitive;
 
-    public Verb(String infinitiv, String present) {
-        this.infinitiv = infinitiv;
+    public Verb(String infinitive, String present) {
+        this.infinitive = infinitive;
         this.present = present;
     }
 }
@@ -131,13 +131,11 @@ public class Bot {
 
     private String getRandom(Map<Mood, List<String>> list, Mood mood) {
         return list.get(mood).get(random.nextInt(list.get(mood).size()));
-
     }
 
     private String getRandom(Map<Mood, List<Verb>> list, Mood mood, boolean present) {
         Verb verb = list.get(mood).get(random.nextInt(list.get(mood).size()));
-        return present ? verb.present : verb.infinitiv;
-
+        return present ? verb.present : verb.infinitive;
     }
 
     public String getResponse(String input) {
@@ -180,7 +178,6 @@ public class Bot {
             return respons;
         }
     }
-
 
     public String getName() {
         return name;
@@ -232,24 +229,26 @@ class Bot_John extends Bot {
     private void buildTree() throws FileNotFoundException {
         File file = new File("C:\\Users\\bernt\\IdeaProjects\\chatbot-project\\botData\\quotes_db.txt");
         Scanner in = new Scanner(new FileInputStream(file), StandardCharsets.UTF_8);
-        Node prevWord = null;
         while (in.hasNextLine()) {
             String input = in.nextLine().toLowerCase();
             String[] inputWords = input.split(" ");
+
+            Node prevWord = null;
+
             for(String s : inputWords) {
                 boolean hasPunctuation = s.matches("[\\w]+[\\W]+");
-                char punctuation = 'x';
-                if(hasPunctuation) {
-                     punctuation = s.charAt(s.length() - 1);
-                }
+                char punctuation = hasPunctuation ? s.charAt(s.length() - 1) : 0;
                 s = s.replaceAll("[-.,?!:;()]", "");
+
                 Node currentWord = graph.getOrDefault(s, new Node(s));
                 currentWord.occurrence++;
-                if(hasPunctuation) {
+
+                if(hasPunctuation)
                     currentWord.getPunctuation(punctuation).increase();
-                }
+
                 if(prevWord != null)
                     prevWord.edges.add(currentWord);
+
                 graph.put(s, currentWord);
                 prevWord = currentWord;
             }
@@ -310,17 +309,13 @@ class Bot_John extends Bot {
 
     static class Node {
         private final String word;
-        private final Set<Node> edges;
-        private int occurrence;
-        private final PriorityQueue<Punctuation> punctuations;
-        private final Random random;
+        private final Set<Node> edges = new HashSet<>();
+        private int occurrence = 0;
+        private final PriorityQueue<Punctuation> punctuations = new PriorityQueue<>(Comparator.comparingInt(a -> -a.score));
+        private final Random random = new Random();
 
         public Node(String word) {
             this.word = word;
-            this.edges = new HashSet<>();
-            occurrence = 0;
-            punctuations = new PriorityQueue<>(Comparator.comparingInt(a -> -a.score));
-            random = new Random();
         }
 
         public Punctuation getPunctuation(char c) {
