@@ -10,7 +10,7 @@ import java.util.Scanner;
 public class Client {
 
     public static void main(String[] args) {
-        if(args.length < 2 || args.length > 3 || args[0].equals("--help") || args[0].equals("-h"))  {
+        if(args.length > 0 && (args[0].equals("--help") || args[0].equals("-h")))  {
             System.out.println("You need to run 'java .\\Main.java [IP] [PORT] ({OPTIONAL}[BOT])");
             return;
         }
@@ -21,7 +21,7 @@ public class Client {
             System.out.println("Connected");
         }
         catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Could not connect bot, try again.");
             return;
         }
         if(!bot) {
@@ -87,13 +87,13 @@ class ClientThread extends Thread {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Could not recieve respons from server.");
         } finally {
             try {
                 input.close();
             }
             catch (Exception e) {
-                e.printStackTrace();
+                System.out.println("Could not close input connection from server.");
             }
         }
     }
@@ -120,7 +120,7 @@ class BotClient {
                 sendMessage(bot.getResponse(respons.split(": ")[1]));
             }
             catch (Exception e) {
-                e.printStackTrace();
+                System.out.println("Could not send message to server.");
             }
         }
     }

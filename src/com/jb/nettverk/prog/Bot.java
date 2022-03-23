@@ -272,20 +272,26 @@ class Bot_John extends Bot {
     public String getResponse(String input) {
         input = input.toLowerCase();
         input = input.replaceAll("[-.,:;?!]","");
+
         List<String> pickedWords = new ArrayList<>();
         String[] inputWords = input.split(" ");
         String lastWord = inputWords[inputWords.length - 1];
+
         int responseLength = random.nextInt(15)+5;
         int timesSinceLastComma = 0;
         boolean done = false;
+
         Node prevWord = getNode(lastWord);
+
         while (!done) {
             Node current = prevWord.getNext();
             String picked = current.word;
+
             if(pickedWords.isEmpty() && picked.length() > 0)
                 picked = Character.toUpperCase(picked.charAt(0)) + picked.substring(1);
+
             if(pickedWords.size() >= responseLength) {
-                if(current.suitableEnd()) {
+                if(current.suitableEnd() && current.punctuations.size() > 0) {
                     char punctuation = current.punctuations.peek().character;
                     picked += punctuation == ',' ? '.' : punctuation;
                     done = true;
@@ -295,11 +301,13 @@ class Bot_John extends Bot {
                     done = true;
                 }
             }
-            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 3)
+
+            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 5)
                 if(random.nextBoolean()) {
                     picked += ',';
                     timesSinceLastComma = 0;
                 }
+
             prevWord = current;
             timesSinceLastComma++;
             pickedWords.add(picked);
