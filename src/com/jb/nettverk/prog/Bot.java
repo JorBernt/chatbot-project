@@ -22,6 +22,8 @@ class Verb {
     }
 }
 
+//The bots have 3 different moods, and will respond based on their moods.
+//In the constructor for the Bot subclasses the mood is set.
 public class Bot {
     protected final Mood mood;
     protected final String name;
@@ -41,6 +43,7 @@ public class Bot {
         init();
     }
 
+    //Returns the appropriate Bot based on the input name from the client.
     static Bot getBot(String name) {
         return switch (name) {
             case "Liam" -> new Bot_LIAM();
@@ -51,6 +54,8 @@ public class Bot {
         };
     }
 
+    //Initialize all the sentences and words the Bots can use.'
+    //They are sorted based on moods, so the Bots can respond according to their moods.
     private void init() {
         List<String> good_adj = new ArrayList<>();
         good_adj.add("Nice");
@@ -129,6 +134,7 @@ public class Bot {
         sentences.put(Mood.INDIFFERENT, indiff_sentences);
     }
 
+    //Helper functions for getting random words.
     private String getRandom(Map<Mood, List<String>> list, Mood mood) {
         return list.get(mood).get(random.nextInt(list.get(mood).size()));
     }
@@ -138,6 +144,8 @@ public class Bot {
         return present ? verb.present : verb.infinitive;
     }
 
+    //The respons builder function. Takes the sentences, and replaces the placeholder with random words.
+    //Different placeholders mean different type of words, or different casings.
     public String getResponse(String input) {
         if (input == null || input.equals("")) return null;
         String[] sentence = input.split(" ");
@@ -208,6 +216,20 @@ class Bot_Sara extends Bot {
     }
 }
 
+/*
+This is a special bot. It uses Markov text generation to create the responses.
+It's fed with ~50000 different quotes, which it uses to generate the responses.
+It is a very simple and "dumb" generator, for the most part making no sense. But it creates for the most part
+correctly built sentences, and is a lot of fun to play around with :)
+
+How it works:
+It is a simple graph, with each node being a word, and all the edges are connection to words that have followed
+that word in a quote. It will take the last word from the prompt, and choose a random word from the edges of that node.
+If that word doesn't exist in the graph, it will just choose a random word.
+There are some logic to create somewhat logical punctuations.
+
+ */
+
 class Bot_John extends Bot {
     private final Map<String, Node> graph;
 
@@ -219,14 +241,15 @@ class Bot_John extends Bot {
 
     private void init() {
         try {
-            buildTree();
+            buildGraph();
         }
         catch (Exception e) {
             System.out.println("Could not read file");
         }
     }
-
-    private void buildTree() throws FileNotFoundException {
+    //This is the graph building function. It reads the quotes from a txt file.
+    private void buildGraph() throws FileNotFoundException {
+        System.out.println("Building graph");
         File file = new File("C:\\Users\\bernt\\IdeaProjects\\chatbot-project\\botData\\quotes_db.txt");
         Scanner in = new Scanner(new FileInputStream(file), StandardCharsets.UTF_8);
         while (in.hasNextLine()) {
@@ -234,7 +257,8 @@ class Bot_John extends Bot {
             String[] inputWords = input.split(" ");
 
             Node prevWord = null;
-
+            //Loops over all the words in the sentence, and creates a node and adds it to the previous nodes edges.
+            //It also take note of the eventual punctuation.
             for(String s : inputWords) {
                 boolean hasPunctuation = s.matches("[\\w]+[\\W]+");
                 char punctuation = hasPunctuation ? s.charAt(s.length() - 1) : 0;
@@ -253,8 +277,14 @@ class Bot_John extends Bot {
                 prevWord = currentWord;
             }
         }
+        System.out.println("Graph done");
     }
 
+    //Fetches the node from the graph given a word, or fetches a random one if it doesn't exist.
+
+    private Node getRandomNode() {
+        return getNode(null);
+    }
     private Node getNode(String word) {
         Node node = graph.get(word);
         if(node == null) {
@@ -268,6 +298,12 @@ class Bot_John extends Bot {
         return node;
     }
 
+
+    //This is the text generator. It takes the last word from the prompt and chooses a random length for the
+    //sentence. Then it will pick random words from the nodes, until it reaches the chosen length.
+    //It will try to end the sentence on a word that usually has a period from the quotes.
+    //If not, it will just end.
+    //Throughout the sentence, after a given limit, it will try to append a comma.
     @Override
     public String getResponse(String input) {
         input = input.toLowerCase();
@@ -285,6 +321,7 @@ class Bot_John extends Bot {
 
         while (!done) {
             Node current = prevWord.getNext();
+            if(current == null) current = getRandomNode();
             String picked = current.word;
 
             if(pickedWords.isEmpty() && picked.length() > 0)
@@ -315,6 +352,8 @@ class Bot_John extends Bot {
         return String.join(" ", pickedWords);
     }
 
+    //The node class. It contains the word, all the connected edges, how many times it occurs, and what kind of
+    //punctuations usually follows.
     static class Node {
         private final String word;
         private final Set<Node> edges = new HashSet<>();
@@ -335,11 +374,16 @@ class Bot_John extends Bot {
             return punctuation;
         }
 
+        //A helper function to check if this node is a suitable end to a sentence. Just checks if a period usually
+        //follow this word.
         public boolean suitableEnd() {
             return (double) punctuations.size() / occurrence >= 0.3 && punctuations.size() > 0 && punctuations.peek().character != ',';
         }
 
         public Node getNext() {
+            if(edges.size() == 0) {
+                return null;
+            }
             int m = random.nextInt(edges.size());
             for(Node n : edges) {
                 if(m-- == 0) return  n;

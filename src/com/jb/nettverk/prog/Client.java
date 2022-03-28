@@ -10,101 +10,112 @@ import java.util.Scanner;
 public class Client {
 
     public static void main(String[] args) {
-        if(args.length > 0 && (args[0].equals("--help") || args[0].equals("-h")))  {
-            System.out.println("You need to run 'java .\\Main.java [IP] [PORT] ({OPTIONAL}[BOT])");
+        //Checks if --help or -h argument is given.
+        if (args.length > 0 && (args[0].equals("--help") || args[0].equals("-h"))) {
+            System.out.println("You need to run 'java -cp . com.jb.nettverk.prog.Client [IP] [PORT] ({OPTIONAL}[BOT NAME])'");
+            System.out.println("If you don't supply a bot name, you will connect to server with a interactive terminal.");
+            System.out.println("The bot names are: ");
+            System.out.println("Liam");
+            System.out.println("Hannah");
+            System.out.println("Sara");
+            System.out.println("John");
             return;
         }
+        //If its given 3 arguments, the last one must be the bot name.
         boolean bot = args.length == 3;
-        BotClient botClient = new BotClient();
+        ClientConnection clientConnection = new ClientConnection();
+        //Tries to connect client to the server.
         try {
-            botClient.startConnection(args[0], Integer.parseInt(args[1]));
+            clientConnection.startConnection(args[0], Integer.parseInt(args[1]));
             System.out.println("Connected");
-        }
-        catch (Exception e) {
-            System.out.println("Could not connect bot, try again.");
+        } catch (Exception e) {
+            System.out.println("Could not connect to server, try again.");
             return;
         }
-        if(!bot) {
-            hostConnection(botClient);
-        }
-        else botConnection(botClient, args[2]);
+
+        //Sets up the connection interaction logic, bot or human.
+        if (!bot) {
+            hostConnection(clientConnection);
+        } else botConnection(clientConnection, args[2]);
     }
 
-    private static void hostConnection(BotClient botClient) {
+    //Human interaction logic.
+    private static void hostConnection(ClientConnection clientConnection) {
         Scanner in = new Scanner(System.in);
+        //Sets the name of the client.
         while (true) {
             System.out.println("Whats your name?");
             String input = in.nextLine();
-            if(!input.isEmpty()) {
-               try {
-                   System.out.printf("Hello %s\n", input);
-                   botClient.sendMessage(input);
-               }
-               catch (Exception e) {
-                   System.out.println("Bot client could not send message.");
-               }
+            if (!input.isEmpty()) {
+                System.out.printf("Hello %s\n", input);
+                clientConnection.sendMessage(input);
                 break;
             }
         }
+        //The messaging loop. Waits for input from user and sends it to the server.
+        // If "/exit" is given, disconnects the client from the server.
         while (true) {
             String input = in.nextLine();
-            try {
-                if(input.equals("/exit")) {
-                    System.out.println("Exiting client.");
-                    botClient.sendMessage(input);
-                    botClient.stopConnection();
-                    return;
+            if (input.equals("/exit")) {
+                System.out.println("Exiting client.");
+                clientConnection.sendMessage(input);
+                System.exit(0);
+                try {
+                    clientConnection.stopConnection();
+                } catch (Exception e) {
+                    System.out.println("Could not stop close socket, try again.");
                 }
-                botClient.sendMessage(input);
+                return;
             }
-            catch (IOException e) {
-                System.out.println("Could not send message, no connection");
-                break;
-            }
+            clientConnection.sendMessage(input);
         }
     }
-    private static void botConnection(BotClient botClient, String botName) {
-        botClient.connectBot(Bot.getBot(botName));
+
+    private static void botConnection(ClientConnection clientConnection, String botName) {
+        clientConnection.connectBot(Bot.getBot(botName));
     }
 }
 
+//The client thread class
 class ClientThread extends Thread {
     private final BufferedReader input;
-    private final BotClient client;
+    private final ClientConnection client;
 
-    public ClientThread(Socket socket, BotClient client) throws IOException {
+    public ClientThread(Socket socket, ClientConnection client) throws IOException {
         input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.client = client;
     }
 
+    //This method overrides Java's Thread run method. While its running, its
+    //responsible the socket sending and receiving messages, and broadcasting that to the client.
     @Override
     public void run() {
-        try {
-            while (true) {
-                String respons = input.readLine();
-                System.out.println(respons);
-                client.recieveRespons(respons);
-            }
-        }
-        catch (Exception e) {
-            System.out.println("Could not recieve respons from server.");
-        } finally {
+        while (true) {
             try {
-                input.close();
-            }
-            catch (Exception e) {
-                System.out.println("Could not close input connection from server.");
+                String respons = input.readLine();
+                client.recieveResponse(respons);
+            } catch (Exception e) {
+                break;
             }
         }
+        System.out.println("Could not recieve respons from server.");
+        try {
+            input.close();
+        } catch (Exception e) {
+            System.out.println("Could not close input connection from server.");
+        }
+
     }
 }
 
-class BotClient {
+class ClientConnection {
     private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
     private Bot bot;
 
+
+    //Sets up the client socket, and input and output streams. It also sets up the thread and starts it.
     public void startConnection(String ip, int port) throws IOException {
         clientSocket = new Socket(ip, port);
         out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -113,29 +124,38 @@ class BotClient {
         clientThread.start();
     }
 
-    public void recieveRespons(String respons) {
-        if(respons.split(": ").length < 2) return;
-        if(bot != null && !respons.startsWith("[BOT]")) {
-            try {
-                sendMessage(bot.getResponse(respons.split(": ")[1]));
-            }
-            catch (Exception e) {
-                System.out.println("Could not send message to server.");
-            }
+    //Logic for the bots recieving a prompt from the user. If its a respons from another bot, it will not respond.
+    public void recieveResponse(String response) {
+        if (response.equals("[PING]")) {
+            sendMessage("[PING] response");
+            return;
+        }
+        System.out.println(response);
+        if (response.split(": ").length < 2) return;
+
+        if (bot != null && !response.startsWith("[BOT]") && !response.startsWith("[SERVER]")) {
+            sendMessage(bot.getResponse(response.split(": ")[1]));
         }
     }
 
+    //Sends the bot name to the server.
     public void connectBot(Bot bot) {
         this.bot = bot;
-        out.printf("[BOT]%s\n",bot.getName());
+        out.printf("[BOT]%s\n", bot.getName());
         System.out.println("Hello " + bot.getName());
     }
 
-    public void sendMessage(String message) throws IOException {
-        if(message == null) return;
+    //Sends message to the server.
+    public void sendMessage(String message) {
+        if (message == null) return;
+        if (clientSocket.isClosed()) {
+            System.out.println("Client is not connected to server.\nServer is most likely not running.");
+            System.exit(0);
+        }
         out.println(message);
     }
 
+    //Closes the socket and streams, ends connection.
     public void stopConnection() throws IOException {
         in.close();
         out.close();
