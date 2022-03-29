@@ -32,15 +32,15 @@ public class Bot {
     protected Map<Mood, List<Verb>> verbs = new HashMap<>();
     protected Map<Mood, List<String>> sentences = new HashMap<>();
 
-    public static void main(String[] args) {
-        Bot_John bj = new Bot_John();
-        System.out.println(bj.getResponse("How are your wine?"));
-    }
-
     protected Bot(String name, Mood mood) {
         this.name = name;
         this.mood = mood;
         init();
+    }
+
+    public static void main(String[] args) {
+        Bot_John bj = new Bot_John();
+        System.out.println(bj.getResponse("How are your wine?"));
     }
 
     //Returns the appropriate Bot based on the input name from the client.
@@ -151,36 +151,38 @@ public class Bot {
         String[] sentence = input.split(" ");
         String respons = getRandom(sentences, mood);
         while (true) {
-            if(respons.contains("{}")) {
-                respons = respons.replaceFirst("(\\{})", sentence[sentence.length - 1].replaceAll("\\W", ""));
+            if (respons.contains("{}")) {
+                respons = respons.replaceFirst("(\\{})",
+                        sentence[sentence.length - 1].replaceAll("\\W", ""));
                 continue;
             }
-            if(respons.contains("{_}")) {
-                respons = respons.replaceFirst("(\\{_})", sentence[sentence.length - 1].replaceAll("\\W", "").toLowerCase());
+            if (respons.contains("{_}")) {
+                respons = respons.replaceFirst("(\\{_})",
+                        sentence[sentence.length - 1].replaceAll("\\W", "").toLowerCase());
                 continue;
             }
-            if(respons.contains("{a}")) {
+            if (respons.contains("{a}")) {
                 respons = respons.replaceFirst("(\\{a})", getRandom(adjectives, mood));
                 continue;
             }
-            if(respons.contains("{_a}")) {
+            if (respons.contains("{_a}")) {
                 respons = respons.replaceFirst("(\\{_a})", getRandom(adjectives, mood).toLowerCase());
                 continue;
             }
-            if(respons.contains("{v}")) {
+            if (respons.contains("{v}")) {
                 respons = input.replaceFirst("(\\{v})", getRandom(verbs, mood, false));
                 continue;
             }
-            if(respons.contains("{_v}")) {
-                respons = respons.replaceFirst("(\\{_v})", getRandom(verbs, mood,false).toLowerCase());
+            if (respons.contains("{_v}")) {
+                respons = respons.replaceFirst("(\\{_v})", getRandom(verbs, mood, false).toLowerCase());
                 continue;
             }
-            if(respons.contains("{vp}")) {
+            if (respons.contains("{vp}")) {
                 respons = respons.replaceFirst("(\\{vp})", getRandom(verbs, mood, true));
                 continue;
             }
-            if(respons.contains("{_vp}")) {
-                respons = respons.replaceFirst("(\\{_vp})", getRandom(verbs, mood,true).toLowerCase());
+            if (respons.contains("{_vp}")) {
+                respons = respons.replaceFirst("(\\{_vp})", getRandom(verbs, mood, true).toLowerCase());
                 continue;
             }
             return respons;
@@ -203,7 +205,7 @@ class Bot_LIAM extends Bot {
 class Bot_Hannah extends Bot {
 
     public Bot_Hannah() {
-        super("Hannah",Mood.BAD);
+        super("Hannah", Mood.BAD);
 
     }
 }
@@ -211,7 +213,7 @@ class Bot_Hannah extends Bot {
 class Bot_Sara extends Bot {
 
     public Bot_Sara() {
-        super("Sara",Mood.INDIFFERENT);
+        super("Sara", Mood.INDIFFERENT);
 
     }
 }
@@ -242,14 +244,14 @@ class Bot_John extends Bot {
     private void init() {
         try {
             buildGraph();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("Could not read file");
         }
     }
+
     //This is the graph building function. It reads the quotes from a txt file.
     private void buildGraph() throws FileNotFoundException {
-        System.out.println("Building graph");
+        System.out.println("Initializing bot...");
         File file = new File("C:\\Users\\bernt\\IdeaProjects\\chatbot-project\\botData\\quotes_db.txt");
         Scanner in = new Scanner(new FileInputStream(file), StandardCharsets.UTF_8);
         while (in.hasNextLine()) {
@@ -259,7 +261,7 @@ class Bot_John extends Bot {
             Node prevWord = null;
             //Loops over all the words in the sentence, and creates a node and adds it to the previous nodes edges.
             //It also take note of the eventual punctuation.
-            for(String s : inputWords) {
+            for (String s : inputWords) {
                 boolean hasPunctuation = s.matches("[\\w]+[\\W]+");
                 char punctuation = hasPunctuation ? s.charAt(s.length() - 1) : 0;
                 s = s.replaceAll("[-.,?!:;()]", "");
@@ -267,17 +269,17 @@ class Bot_John extends Bot {
                 Node currentWord = graph.getOrDefault(s, new Node(s));
                 currentWord.occurrence++;
 
-                if(hasPunctuation)
+                if (hasPunctuation)
                     currentWord.getPunctuation(punctuation).increase();
 
-                if(prevWord != null)
+                if (prevWord != null)
                     prevWord.edges.add(currentWord);
 
                 graph.put(s, currentWord);
                 prevWord = currentWord;
             }
         }
-        System.out.println("Graph done");
+        System.out.println("Bot initialized");
     }
 
     //Fetches the node from the graph given a word, or fetches a random one if it doesn't exist.
@@ -285,12 +287,13 @@ class Bot_John extends Bot {
     private Node getRandomNode() {
         return getNode(null);
     }
+
     private Node getNode(String word) {
         Node node = graph.get(word);
-        if(node == null) {
+        if (node == null) {
             int n = random.nextInt(graph.size());
-            for(var nn : graph.values())
-                if(n-- == 0) {
+            for (var nn : graph.values())
+                if (n-- == 0) {
                     node = nn;
                     break;
                 }
@@ -307,13 +310,13 @@ class Bot_John extends Bot {
     @Override
     public String getResponse(String input) {
         input = input.toLowerCase();
-        input = input.replaceAll("[-.,:;?!]","");
+        input = input.replaceAll("[-.,:;?!]", "");
 
         List<String> pickedWords = new ArrayList<>();
         String[] inputWords = input.split(" ");
         String lastWord = inputWords[inputWords.length - 1];
 
-        int responseLength = random.nextInt(15)+5;
+        int responseLength = random.nextInt(15) + 5;
         int timesSinceLastComma = 0;
         boolean done = false;
 
@@ -321,26 +324,28 @@ class Bot_John extends Bot {
 
         while (!done) {
             Node current = prevWord.getNext();
-            if(current == null) current = getRandomNode();
+            if (current == null) current = getRandomNode();
             String picked = current.word;
 
-            if(pickedWords.isEmpty() && picked.length() > 0)
+            if (pickedWords.isEmpty() && picked.length() > 0)
                 picked = Character.toUpperCase(picked.charAt(0)) + picked.substring(1);
 
-            if(pickedWords.size() >= responseLength) {
-                if(current.suitableEnd() && current.punctuations.size() > 0) {
+            if (pickedWords.size() >= responseLength) {
+                if (current.suitableEnd() && current.punctuations.size() > 0) {
                     char punctuation = current.punctuations.peek().character;
                     picked += punctuation == ',' ? '.' : punctuation;
                     done = true;
                 }
-                if(pickedWords.size() > responseLength + 20) {
+                if (pickedWords.size() > responseLength + 10) {
                     picked += ".";
                     done = true;
                 }
             }
 
-            if(!done && current.punctuations.size() > 0 && current.punctuations.peek().character == ',' && timesSinceLastComma > 5)
-                if(random.nextBoolean()) {
+            if (!done && current.punctuations.size() > 0
+                    && current.punctuations.peek().character == ','
+                    && timesSinceLastComma > 5)
+                if (random.nextBoolean()) {
                     picked += ',';
                     timesSinceLastComma = 0;
                 }
@@ -357,17 +362,17 @@ class Bot_John extends Bot {
     static class Node {
         private final String word;
         private final Set<Node> edges = new HashSet<>();
-        private int occurrence = 0;
         private final PriorityQueue<Punctuation> punctuations = new PriorityQueue<>(Comparator.comparingInt(a -> -a.score));
         private final Random random = new Random();
+        private int occurrence = 0;
 
         public Node(String word) {
             this.word = word;
         }
 
         public Punctuation getPunctuation(char c) {
-            for(var p : punctuations) {
-                if(p.character == c) return p;
+            for (var p : punctuations) {
+                if (p.character == c) return p;
             }
             Punctuation punctuation = new Punctuation(c);
             punctuations.add(punctuation);
@@ -377,21 +382,24 @@ class Bot_John extends Bot {
         //A helper function to check if this node is a suitable end to a sentence. Just checks if a period usually
         //follow this word.
         public boolean suitableEnd() {
-            return (double) punctuations.size() / occurrence >= 0.3 && punctuations.size() > 0 && punctuations.peek().character != ',';
+            return (double) punctuations.size() / occurrence >= 0.3
+                    && punctuations.size() > 0
+                    && punctuations.peek().character != ',';
         }
 
         public Node getNext() {
-            if(edges.size() == 0) {
+            if (edges.size() == 0) {
                 return null;
             }
             int m = random.nextInt(edges.size());
-            for(Node n : edges) {
-                if(m-- == 0) return  n;
+            for (Node n : edges) {
+                if (m-- == 0) return n;
             }
             return null;
         }
     }
 
+    //Struct for
     static class Punctuation {
         char character;
         int score;

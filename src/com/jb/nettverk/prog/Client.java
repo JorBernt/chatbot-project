@@ -11,7 +11,7 @@ public class Client {
 
     public static void main(String[] args) {
         //Checks if --help or -h argument is given.
-        if (args.length > 0 && (args[0].equals("--help") || args[0].equals("-h"))) {
+        if (args.length == 0 || args[0].equals("--help") || args[0].equals("-h")) {
             System.out.println("You need to run 'java -cp . com.jb.nettverk.prog.Client [IP] [PORT] ({OPTIONAL}[BOT NAME])'");
             System.out.println("If you don't supply a bot name, you will connect to server with a interactive terminal.");
             System.out.println("The bot names are: ");
@@ -28,6 +28,7 @@ public class Client {
         try {
             clientConnection.startConnection(args[0], Integer.parseInt(args[1]));
             System.out.println("Connected");
+            System.out.println("Type /exit to quit.");
         } catch (Exception e) {
             System.out.println("Could not connect to server, try again.");
             return;
@@ -48,6 +49,7 @@ public class Client {
             String input = in.nextLine();
             if (!input.isEmpty()) {
                 System.out.printf("Hello %s\n", input);
+                System.out.println("Type your prompt:");
                 clientConnection.sendMessage(input);
                 break;
             }
@@ -55,19 +57,26 @@ public class Client {
         //The messaging loop. Waits for input from user and sends it to the server.
         // If "/exit" is given, disconnects the client from the server.
         while (true) {
-            String input = in.nextLine();
-            if (input.equals("/exit")) {
-                System.out.println("Exiting client.");
-                clientConnection.sendMessage(input);
-                System.exit(0);
-                try {
-                    clientConnection.stopConnection();
-                } catch (Exception e) {
-                    System.out.println("Could not stop close socket, try again.");
+            try {
+                String input = in.nextLine();
+                if (input.equals("/exit")) {
+                    System.out.println("Exiting client.");
+                    clientConnection.sendMessage(input);
+                    System.exit(0);
+                    try {
+                        clientConnection.stopConnection();
+                    } catch (Exception e) {
+                        System.out.println("Could not stop close socket, try again.");
+                    }
+                    return;
                 }
-                return;
+                clientConnection.sendMessage(input);
             }
-            clientConnection.sendMessage(input);
+            //If the user quits the program with CTRL-C, tell the server to disconnect the client.
+            catch (Exception e) {
+                clientConnection.sendMessage("/exit");
+            }
+
         }
     }
 
@@ -98,13 +107,11 @@ class ClientThread extends Thread {
                 break;
             }
         }
-        System.out.println("Could not recieve respons from server.");
         try {
             input.close();
         } catch (Exception e) {
             System.out.println("Could not close input connection from server.");
         }
-
     }
 }
 
