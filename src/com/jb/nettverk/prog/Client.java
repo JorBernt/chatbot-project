@@ -26,11 +26,13 @@ public class Client {
         ClientConnection clientConnection = new ClientConnection();
         //Tries to connect client to the server.
         try {
-            clientConnection.startConnection(args[0], Integer.parseInt(args[1]));
+            String ip = args[0];
+            int port = Integer.parseInt(args[1]);
+            clientConnection.startConnection(ip, port);
             System.out.println("Connected");
             System.out.println("Type /exit to quit.");
         } catch (Exception e) {
-            System.out.println("Could not connect to server, try again.");
+            System.out.println("Could not connect to server, try again. Use the --help or -h argument to get help.");
             return;
         }
 
@@ -40,7 +42,7 @@ public class Client {
         } else botConnection(clientConnection, args[2]);
     }
 
-    //Human interaction logic.
+    //Host interaction logic.
     private static void hostConnection(ClientConnection clientConnection) {
         Scanner in = new Scanner(System.in);
         //Sets the name of the client.
@@ -66,7 +68,7 @@ public class Client {
                     try {
                         clientConnection.stopConnection();
                     } catch (Exception e) {
-                        System.out.println("Could not stop close socket, try again.");
+                        System.out.println("Could not stop the connection, try again.");
                     }
                     return;
                 }
@@ -76,7 +78,6 @@ public class Client {
             catch (Exception e) {
                 clientConnection.sendMessage("/exit");
             }
-
         }
     }
 
@@ -133,10 +134,6 @@ class ClientConnection {
 
     //Logic for the bots recieving a prompt from the user. If its a respons from another bot, it will not respond.
     public void recieveResponse(String response) {
-        if (response.equals("[PING]")) {
-            sendMessage("[PING] response");
-            return;
-        }
         System.out.println(response);
         if (response.split(": ").length < 2) return;
 

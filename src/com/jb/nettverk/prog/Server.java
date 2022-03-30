@@ -15,7 +15,7 @@ public class Server {
             "You can kick clients with '/kick [CLIENT_NAME]' command, or '/kick -p [IP]'." +
                     "You can supply multiple clients.",
             "You can list clients with '/list' command.",
-            "You can exit the server with /exit command");
+            "You can exit the server with '/exit' command");
 
     public static void main(String[] args) {
         //Checks if any argument parameter is help, and providing info.
@@ -77,12 +77,6 @@ class ServerThread extends Thread {
         this(null, threadList);
     }
 
-    public ServerThread(BufferedReader input, PrintWriter output) {
-        this(new ArrayList<>());
-        this.input = input;
-        this.output = output;
-    }
-
     @Override
     public void run() {
         if (socket == null) {
@@ -107,22 +101,21 @@ class ServerThread extends Thread {
                 }
 
                 //Input from a client.
-                String outputString;
+                String inputFromClient;
                 try {
-                    outputString = input.readLine();
-                    if (outputString.equals("[PING] response")) continue;
+                    inputFromClient = input.readLine();
                 } catch (Exception e) {
                     disconnectClient();
                     break;
                 }
                 //If the input is "/exit" the client will disconnect.
-                if (outputString.equals("/exit")) {
+                if (inputFromClient.equals("/exit")) {
                     disconnectClient();
                     break;
                 }
 
-                printToAllClients(clientName, outputString);
-                System.out.printf("Server recieved message from %s: %s\n", clientName, outputString);
+                printToAllClients(clientName, inputFromClient);
+                System.out.printf("Server recieved message from %s: %s\n", clientName, inputFromClient);
             }
         } catch (Exception e) {
             close();
@@ -131,10 +124,7 @@ class ServerThread extends Thread {
         }
     }
 
-    private void ping() {
-        output.println();
-    }
-
+    //Disconnects client and notifies server and other clients.
     private void disconnectClient() {
         ServerThread thread = getThreadByName(clientName);
         if (thread == null) return;
@@ -143,6 +133,7 @@ class ServerThread extends Thread {
         printToAllClients("[SERVER]", clientName + " has disconnected.");
     }
 
+    //Sends message to all clients except itself.
     private void printToAllClients(String clientName, String outputString) {
         //Runs through all the connected threads, to send the message to each client,
         //except the client who sent the message.
@@ -152,26 +143,30 @@ class ServerThread extends Thread {
         }
     }
 
-    //Handles input on the server terminal
-    public void startInputReader() {
+
+    //Handles input on the server terminal.
+    private void startInputReader() {
+
         Scanner in = new Scanner(System.in);
         while (true) {
             String input = in.nextLine();
 
             if (input.startsWith("/kick")) {
-                String[] split = input.split(" ");
-                if (split.length > 1) {
-                    if (split[1].equals("all")) {
+                String[] args = input.split(" ");
+                if (args.length > 1) {
+                    if (args[1].equals("all")) {
+                        //Disconnects all clients
                         while (!threadList.isEmpty()) {
                             kick(threadList.get(0));
                         }
                         System.out.println("All clients kicked.");
                     } else {
-                        boolean ip = split[1].equals("-p");
-                        for (int i = ip ? 2 : 1; i < split.length; i++) {
-                            ServerThread thread = ip ? getThreadByIp(split[i]) : getThreadByName(split[i]);
+                        //Kicks client based on IP address or name.
+                        boolean ip = args[1].equals("-p");
+                        for (int i = ip ? 2 : 1; i < args.length; i++) {
+                            ServerThread thread = ip ? getThreadByIp(args[i]) : getThreadByName(args[i]);
                             if (thread == null) {
-                                System.out.println("No client named " + split[i]);
+                                System.out.println("No client named " + args[i]);
                                 continue;
                             }
                             kick(thread);
@@ -199,13 +194,14 @@ class ServerThread extends Thread {
         }
     }
 
+    //Finds client thread based on name
     private ServerThread getThreadByName(String name) {
         for (ServerThread thread : threadList) {
             if (thread.clientName.equals(name)) return thread;
         }
         return null;
     }
-
+    //Finds client thread based on ip
     private ServerThread getThreadByIp(String ip) {
         for (ServerThread thread : threadList) {
             if (thread.socket.getLocalAddress().getHostAddress().equals(ip)) return thread;

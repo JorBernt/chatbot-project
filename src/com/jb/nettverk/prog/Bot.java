@@ -13,8 +13,8 @@ enum Mood {
 }
 
 class Verb {
-    String present;
-    String infinitive;
+    public String present;
+    public String infinitive;
 
     public Verb(String infinitive, String present) {
         this.infinitive = infinitive;
@@ -321,14 +321,12 @@ class Bot_John extends Bot {
         boolean done = false;
 
         Node prevWord = getNode(lastWord);
+        pickedWords.add(Character.toUpperCase(lastWord.charAt(0)) + lastWord.substring(1));
 
         while (!done) {
             Node current = prevWord.getNext();
             if (current == null) current = getRandomNode();
             String picked = current.word;
-
-            if (pickedWords.isEmpty() && picked.length() > 0)
-                picked = Character.toUpperCase(picked.charAt(0)) + picked.substring(1);
 
             if (pickedWords.size() >= responseLength) {
                 if (current.suitableEnd() && current.punctuations.size() > 0) {
